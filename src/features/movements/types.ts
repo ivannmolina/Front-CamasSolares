@@ -22,6 +22,6 @@ export type Movement = {
   } | null;
 };
 
-export type NewMovement = Omit<Movement,'id'|'cliente'|'descripcion'> & {
-  descripcion?: string;
+export type NewMovement = Omit<Movement,'id'|'cliente'> & {
+  clienteId?: number;
 };

@@ -7,14 +7,8 @@ import { todayISO } from '@/lib/format'
 
 type SortKey = 'nombre'|'apellido'|'fecha'|'monto'
 type SortDir = 'asc'|'desc'
-type Props = {
-  items: Movement[]
-  onAdd: () => void
-  onSort: (k: 'nombre'|'apellido'|'fecha'|'monto') => void
-  sortKey: 'nombre'|'apellido'|'fecha'|'monto'
-  sortDir: 'asc'|'desc'
-}
-export default function MovementsPage(){           // ← sin props
+
+export default function MovementsPage(){
   const [items,setItems] = useState<Movement[]>([])
   const [open,setOpen] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('fecha')
@@ -26,15 +20,15 @@ export default function MovementsPage(){           // ← sin props
 
   const sorted = useMemo(()=>{
     const arr = [...items]
-    const getVal = (m: Movement, k: SortKey) => {
+    const getVal = (m: Movement, k: SortKey): string | number => {
       if (k==='nombre') return m.cliente?.nombre?.toLowerCase() ?? ''
       if (k==='apellido') return m.cliente?.apellido?.toLowerCase() ?? ''
       if (k==='monto') return m.monto
       return m.fecha
     }
     arr.sort((a,b)=>{
-      const va = getVal(a, sortKey) as any
-      const vb = getVal(b, sortKey) as any
+      const va = getVal(a, sortKey)
+      const vb = getVal(b, sortKey)
       if (va<vb) return sortDir==='asc' ? -1 : 1
       if (va>vb) return sortDir==='asc' ? 1 : -1
       return 0
@@ -42,13 +36,22 @@ export default function MovementsPage(){           // ← sin props
     return arr
   },[items, sortKey, sortDir])
 
-  async function handleDelete(){ /* … si lo usás … */ }
+  const handleDelete = async (ids: number[]) => {
+    try {
+      await deleteMovements(ids)
+      setItems(prev => prev.filter(m => !ids.includes(m.id)))
+    } catch (error) {
+      console.error('Error al eliminar movimientos:', error)
+      alert('Error al eliminar los movimientos')
+    }
+  }
 
   return (
     <div className="vstack" style={{gap:12}}>
       <MovementsTable
         items={sorted}
         onAdd={()=>setOpen(true)}
+        onDelete={handleDelete}
         onSort={(k)=>{
           if (sortKey===k) setSortDir(d=>d==='asc'?'desc':'asc')
           else { setSortKey(k); setSortDir('asc') }
@@ -59,8 +62,19 @@ export default function MovementsPage(){           // ← sin props
 
       {open && (
         <AddMovementModal
-          onClose={()=>setOpen(false)}
-          onCreated={(m)=>{ setItems(prev=>[m, ...prev]) }}
+          onClose={()=>{
+            console.log('Cerrando modal')
+            setOpen(false)
+          }}
+          onCreated={(m)=>{ 
+            console.log('Movimiento recibido en página:', m)
+            setItems(prev=>{
+              console.log('Items anteriores:', prev.length)
+              const newItems = [m, ...prev]
+              console.log('Nuevos items:', newItems.length)
+              return newItems
+            })
+          }}
         />
       )}
 

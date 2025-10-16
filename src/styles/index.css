@@ -1,9 +1,9 @@
 :root{
-  --bg:#f4f5f7;
-  --surface:#ffffff;
-  --muted:#6b7280;
-  --text:#111827;
-  --border:#e5e7eb;
+  --bg:#0a0a0a;
+  --surface:#18181b;
+  --muted:#71717a;
+  --text:#fafafa;
+  --border:#27272a;
   --primary:#2563eb;
   --primary-600:#1d4ed8;
   --ring: 0 0 0 3px rgba(37,99,235,0.25);
@@ -20,16 +20,56 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,s
 .h1{font-size:28px;font-weight:700;margin:8px 0 16px}
 .caption{color:var(--muted);font-size:13px}
 
+/* Utilidades básicas */
+.w-full{width:100%}
+.text-sm{font-size:14px}
+.text-xl{font-size:20px}
+.font-semibold{font-weight:600}
+.rounded-xl{border-radius:12px}
+.overflow-hidden{overflow:hidden}
+.px-4{padding-left:16px;padding-right:16px}
+.py-3{padding-top:12px;padding-bottom:12px}
+.py-10{padding-top:40px;padding-bottom:40px}
+.text-left{text-align:left}
+.text-center{text-align:center}
+.rounded{border-radius:6px}
+.px-2{padding-left:8px;padding-right:8px}
+.py-0\.5{padding-top:2px;padding-bottom:2px}
+.divide-y>*+*{border-top:1px solid var(--border)}
+.hover\:bg-zinc-900\/30:hover{background:rgba(24,24,27,0.3)}
+.cursor-pointer{cursor:pointer}
+.hover\:bg-zinc-800\/50:hover{background:rgba(39,39,42,0.5)}
+
+/* Colores zinc */
+.border-zinc-800{border-color:#27272a}
+.bg-zinc-900\/40{background:rgba(24,24,27,0.4)}
+.text-zinc-300{color:#d4d4d8}
+.text-zinc-400{color:#a1a1aa}
+.divide-zinc-800>*+*{border-top-color:#27272a}
+
+/* Colores emerald */
+.bg-emerald-900\/40{background:rgba(6,78,59,0.4)}
+.text-emerald-300{color:#6ee7b7}
+
+/* Colores rose */
+.bg-rose-900\/40{background:rgba(136,19,55,0.4)}
+.text-rose-300{color:#fda4af}
+
+/* Colores sky */
+.text-sky-400{color:#38bdf8}
+.hover\:underline:hover{text-decoration:underline}
+
 .table{width:100%;border-collapse:separate;border-spacing:0}
 .table th,.table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
 .table th{text-align:left;color:var(--muted);font-weight:600;background:#fafafa}
 .row:hover{background:#fafbff}
 .badge{font-size:12px;color:#374151;background:#eef2ff;border:1px solid #e0e7ff;padding:2px 8px;border-radius:999px}
 
-input[type="text"],input[type="number"],input[type="datetime-local"],select,textarea{
-  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:14px;
+input[type="text"],input[type="number"],input[type="datetime-local"],input[type="date"],input[type="time"],select,textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:14px;
 }
 input:focus,select:focus,textarea:focus{outline:none;box-shadow:var(--ring);border-color:var(--primary)}
+input:disabled{opacity:0.6;cursor:not-allowed}
 
 .btn{border:1px solid var(--border);background:#fff;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
 .btn:hover{background:#f8fafc}
@@ -44,3 +84,6 @@ input:focus,select:focus,textarea:focus{outline:none;box-shadow:var(--ring);bord
 .modal footer{display:flex;gap:10px;justify-content:flex-end;padding:16px 20px;border-top:1px solid var(--border)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:0 16px;z-index:40}
+.bottom-nav .card{margin:0;border:none;box-shadow:none}

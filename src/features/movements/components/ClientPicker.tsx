@@ -3,7 +3,6 @@ import Input from '@/ui/Input'
 import Button from '@/ui/Button'
 import { searchClients } from '@/features/clients/api/clients.api'
 import type { Client } from '@/features/clients/types'
-import { waLink } from '@/lib/format'
 
 type Props = {
   value: Client | null
@@ -12,47 +11,114 @@ type Props = {
 }
 
 export default function ClientPicker({value, onChange, onAddClient}: Props){
-  const [q,setQ] = useState(value ? `${value.nombre} ${value.apellido}` : '')
+  const [q,setQ] = useState('')
   const [results,setResults] = useState<Client[]>([])
+  const [showResults, setShowResults] = useState(false)
+  
   useEffect(()=>{
     let mounted = true
-    searchClients(q).then(r=>{ if(mounted) setResults(r) })
+    if (q.trim()) {
+      searchClients(q).then(r=>{ 
+        if(mounted) {
+          setResults(r)
+          setShowResults(true)
+        }
+      })
+    } else {
+      setResults([])
+      setShowResults(false)
+    }
     return ()=>{ mounted=false }
   },[q])
 
-  useEffect(()=>{
-    if(value) setQ(`${value.nombre} ${value.apellido}`)
-  },[value])
+  const handleSelectClient = (c: Client) => {
+    onChange(c)
+    setQ(`${c.nombre} ${c.apellido}`)
+    setShowResults(false)
+  }
+
+  const handleClearClient = () => {
+    onChange(null)
+    setQ('')
+    setShowResults(false)
+  }
 
   return (
     <div className="vstack" style={{gap:6}}>
-      <label className="caption">Cliente</label>
+      <label className="caption">Buscar cliente</label>
       <div className="hstack" style={{gap:8}}>
-        <div style={{flex:1}}>
-          <Input placeholder="Buscar por nombre, apellido o teléfono"
-                 value={q} onChange={e=>setQ(e.target.value)} />
-          {q && results.length>0 && (
-            <div style={{border:'1px solid var(--border)',borderRadius:8,background:'#fff',marginTop:6,maxHeight:180,overflow:'auto'}}>
-              {results.map(c=>(
-                <div key={c.id}
-                     style={{padding:'8px 10px',cursor:'pointer'}}
-                     onClick={()=>{onChange(c); setQ(`${c.nombre} ${c.apellido}`)}}
-                >
-                  <b>{c.nombre} {c.apellido}</b> · {c.telefono ?? 's/teléfono'}
-                  {waLink(c.telefono) && <> · <a href={waLink(c.telefono)!} target="_blank" rel="noreferrer">WhatsApp</a></>}
+        <div style={{flex:1, position:'relative'}}>
+          <div style={{position:'relative'}}>
+            <Input 
+              placeholder="Buscar por nombre, apellido o teléfono"
+              value={value ? `${value.nombre} ${value.apellido}` : q} 
+              onChange={e=>{
+                if(!value) setQ(e.target.value)
+              }}
+              onFocus={() => {
+                if(q.trim() && !value) setShowResults(true)
+              }}
+              disabled={!!value}
+            />
+            {value && (
+              <button 
+                onClick={handleClearClient}
+                style={{
+                  position:'absolute',
+                  right:'8px',
+                  top:'50%',
+                  transform:'translateY(-50%)',
+                  background:'none',
+                  border:'none',
+                  cursor:'pointer',
+                  color:'var(--muted)',
+                  fontSize:'18px',
+                  padding:'4px 8px'
+                }}
+                title="Limpiar selección"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {showResults && !value && q.trim() && (
+            <div style={{
+              position:'absolute',
+              zIndex:10,
+              width:'100%',
+              border:'1px solid var(--border)',
+              borderRadius:8,
+              background:'var(--surface)',
+              marginTop:6,
+              maxHeight:180,
+              overflow:'auto',
+              boxShadow:'0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+              {results.length > 0 ? (
+                results.map(c=>(
+                  <div key={c.id}
+                       style={{
+                         padding:'8px 10px',
+                         cursor:'pointer',
+                         borderBottom:'1px solid var(--border)'
+                       }}
+                       className="hover:bg-zinc-800/50"
+                       onClick={()=>handleSelectClient(c)}
+                  >
+                    <div><b>{c.nombre} {c.apellido}</b></div>
+                    <div className="caption">{c.telefono ?? 's/teléfono'}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="caption" style={{padding:'12px 10px', textAlign:'center'}}>
+                  No se encontraron clientes. Puedes añadir uno nuevo con el botón "+Añadir cliente".
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
-        <Button onClick={onAddClient}>+ Añadir cliente</Button>
+        {!value && <Button onClick={onAddClient}>+ Añadir cliente</Button>}
       </div>
-      {value && (
-        <div className="caption">
-          Seleccionado: <b>{value.nombre} {value.apellido}</b> · {value.telefono ?? 's/teléfono'}
-          {waLink(value.telefono) && <> · <a href={waLink(value.telefono)!} target="_blank" rel="noreferrer">WhatsApp</a></>}
-        </div>
-      )}
     </div>
   )
 }
