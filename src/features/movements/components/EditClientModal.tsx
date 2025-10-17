@@ -2,22 +2,28 @@ import { useState, useEffect } from 'react'
 import Modal from '@/ui/Modal'
 import Input from '@/ui/Input'
 import Button from '@/ui/Button'
-import { createClient, searchClients } from '@/features/clients/api/clients.api'
+import { updateClient, searchClients } from '@/features/clients/api/clients.api'
 import type { Client } from '@/features/clients/types'
 import { waLink, phoneToWaNumber } from '@/lib/format'
 
-export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; onCreated:(c:Client)=>void}){
-  const [nombre,setNombre]=useState('')
-  const [apellido,setApellido]=useState('')
-  const [dni,setDni]=useState('')
-  const [telefono,setTelefono]=useState('')
+type Props = {
+  client: Client
+  onClose: () => void
+  onUpdated: (c: Client) => void
+}
+
+export default function EditClientModal({client, onClose, onUpdated}: Props){
+  const [nombre, setNombre] = useState(client.nombre)
+  const [apellido, setApellido] = useState(client.apellido)
+  const [dni, setDni] = useState(client.dni ?? '')
+  const [telefono, setTelefono] = useState(client.telefono ?? '')
   const [saving, setSaving] = useState(false)
   const [isDuplicate, setIsDuplicate] = useState(false)
 
   const link = waLink(telefono)
-  const numberOk = phoneToWaNumber(telefono) !== null // 8–15 dígitos
+  const numberOk = telefono === '' || phoneToWaNumber(telefono) !== null
 
-  // Validar duplicados en tiempo real
+  // Validar duplicados en tiempo real (excluyendo el cliente actual)
   useEffect(() => {
     const checkDuplicate = async () => {
       if (!nombre.trim() || !apellido.trim()) {
@@ -25,18 +31,21 @@ export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; o
         return
       }
 
+      // Si no cambió el nombre y apellido, no es duplicado
+      if (nombre === client.nombre && apellido === client.apellido) {
+        setIsDuplicate(false)
+        return
+      }
+
       try {
         const existingClients = await searchClients(`${nombre} ${apellido}`)
         const duplicate = existingClients.find(
-          c => c.nombre.toLowerCase() === nombre.toLowerCase() && 
+          c => c.id !== client.id && 
+               c.nombre.toLowerCase() === nombre.toLowerCase() && 
                c.apellido.toLowerCase() === apellido.toLowerCase()
         )
         
-        if (duplicate) {
-          setIsDuplicate(true)
-        } else {
-          setIsDuplicate(false)
-        }
+        setIsDuplicate(!!duplicate)
       } catch (err) {
         console.error('Error al verificar cliente:', err)
       }
@@ -44,31 +53,41 @@ export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; o
 
     const timeoutId = setTimeout(checkDuplicate, 500) // Debounce
     return () => clearTimeout(timeoutId)
-  }, [nombre, apellido])
+  }, [nombre, apellido, client.id, client.nombre, client.apellido])
 
   async function handleSave(){
     if(!nombre || !apellido || !numberOk || isDuplicate) return
     
     setSaving(true)
     try {
-      const c = await createClient({
+      console.log('Enviando actualización:', {
+        id: client.id,
         nombre,
         apellido,
         dni: dni.trim() || undefined,
-        telefono
+        telefono: telefono.trim() || undefined
       })
-      onCreated(c)
+      
+      const updated = await updateClient(client.id, {
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        dni: dni.trim() || undefined,
+        telefono: telefono.trim() || undefined
+      })
+      
+      console.log('Cliente actualizado:', updated)
+      onUpdated(updated)
       onClose()
     } catch(err) {
-      console.error('Error al guardar el cliente:', err)
-      alert('Error al guardar el cliente')
+      console.error('Error al actualizar el cliente:', err)
+      alert('Error al actualizar el cliente')
     } finally { 
       setSaving(false) 
     }
   }
 
   return (
-    <Modal title="Añadir cliente" onClose={onClose}>
+    <Modal title="Editar cliente" onClose={onClose}>
       <div className="vstack" style={{gap:12}}>
         <div>
           <label className="caption">Nombre</label>
@@ -102,13 +121,13 @@ export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; o
         </div>
         {isDuplicate && (
           <div className="bg-rose-900/40 text-rose-300" style={{padding:'12px 14px', borderRadius:'10px', border:'1px solid #9f1239', fontSize:'14px', fontWeight: 500}}>
-            ⚠️ Cliente ya existente
+            ⚠️ Ya existe otro cliente con ese nombre y apellido
           </div>
         )}
         <div className="hstack" style={{justifyContent:'flex-end', gap:10, marginTop:6}}>
           <Button onClick={onClose}>Cancelar</Button>
           <Button className="primary" onClick={handleSave} disabled={!nombre || !apellido || !numberOk || isDuplicate || saving}>
-            {saving ? 'Guardando…' : 'Guardar cliente'}
+            {saving ? 'Guardando…' : 'Actualizar cliente'}
           </Button>
         </div>
       </div>

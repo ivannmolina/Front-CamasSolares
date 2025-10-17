@@ -3,6 +3,7 @@ import Input from '@/ui/Input'
 import Button from '@/ui/Button'
 import { searchClients } from '@/features/clients/api/clients.api'
 import type { Client } from '@/features/clients/types'
+import EditClientModal from './EditClientModal'
 
 type Props = {
   value: Client | null
@@ -14,6 +15,7 @@ export default function ClientPicker({value, onChange, onAddClient}: Props){
   const [q,setQ] = useState('')
   const [results,setResults] = useState<Client[]>([])
   const [showResults, setShowResults] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
   
   useEffect(()=>{
     let mounted = true
@@ -43,23 +45,42 @@ export default function ClientPicker({value, onChange, onAddClient}: Props){
     setShowResults(false)
   }
 
+  const handleEditClient = (c: Client, e: React.MouseEvent) => {
+    e.stopPropagation() // Evitar que se seleccione el cliente
+    setEditingClient(c)
+    setShowResults(false)
+  }
+
+  const handleClientUpdated = (updated: Client) => {
+    // Actualizar en la lista de resultados
+    setResults(prev => prev.map(c => c.id === updated.id ? updated : c))
+    // Si el cliente editado es el seleccionado, actualizarlo también
+    if (value?.id === updated.id) {
+      onChange(updated)
+      setQ(`${updated.nombre} ${updated.apellido}`)
+    }
+    setEditingClient(null)
+  }
+
   return (
-    <div className="vstack" style={{gap:6}}>
-      <label className="caption">Buscar cliente</label>
-      <div className="hstack" style={{gap:8}}>
-        <div style={{flex:1, position:'relative'}}>
-          <div style={{position:'relative'}}>
-            <Input 
-              placeholder="Buscar por nombre, apellido o teléfono"
-              value={value ? `${value.nombre} ${value.apellido}` : q} 
-              onChange={e=>{
-                if(!value) setQ(e.target.value)
-              }}
-              onFocus={() => {
-                if(q.trim() && !value) setShowResults(true)
-              }}
-              disabled={!!value}
-            />
+    <div className="vstack" style={{gap:12}}>
+      <div style={{flex:1, position:'relative'}}>
+        <label className="caption">Buscar cliente</label>
+        <div className="hstack" style={{gap:8, marginTop:6}}>
+          <div style={{flex:1, position:'relative'}}>
+            <div style={{position:'relative'}}>
+              <Input 
+                className="client-search-input"
+                placeholder="Buscar por nombre, apellido o teléfono"
+                value={value ? `${value.nombre} ${value.apellido}` : q} 
+                onChange={e=>{
+                  if(!value) setQ(e.target.value)
+                }}
+                onFocus={() => {
+                  if(q.trim() && !value) setShowResults(true)
+                }}
+                disabled={!!value}
+              />
             {value && (
               <button 
                 onClick={handleClearClient}
@@ -100,13 +121,46 @@ export default function ClientPicker({value, onChange, onAddClient}: Props){
                        style={{
                          padding:'8px 10px',
                          cursor:'pointer',
-                         borderBottom:'1px solid var(--border)'
+                         borderBottom:'1px solid var(--border)',
+                         display:'flex',
+                         alignItems:'center',
+                         justifyContent:'space-between',
+                         gap:'8px'
                        }}
                        className="hover:bg-zinc-800/50"
                        onClick={()=>handleSelectClient(c)}
                   >
-                    <div><b>{c.nombre} {c.apellido}</b></div>
-                    <div className="caption">{c.telefono ?? 's/teléfono'}</div>
+                    <div style={{flex:1}}>
+                      <div>
+                        <b>{c.nombre} {c.apellido}</b>
+                        {c.dni && (
+                          <span style={{marginLeft:'8px', color:'var(--muted)', fontSize:'13px'}}>
+                            DNI: {c.dni}
+                          </span>
+                        )}
+                      </div>
+                      <div className="caption">{c.telefono ?? 's/teléfono'}</div>
+                    </div>
+                    <button
+                      onClick={(e) => handleEditClient(c, e)}
+                      style={{
+                        background:'none',
+                        border:'none',
+                        cursor:'pointer',
+                        color:'var(--muted)',
+                        fontSize:'16px',
+                        padding:'4px 8px',
+                        display:'flex',
+                        alignItems:'center',
+                        justifyContent:'center',
+                        borderRadius:'6px',
+                        transition:'all 0.2s'
+                      }}
+                      className="hover:bg-zinc-700"
+                      title="Editar cliente"
+                    >
+                      ✏️
+                    </button>
                   </div>
                 ))
               ) : (
@@ -119,6 +173,15 @@ export default function ClientPicker({value, onChange, onAddClient}: Props){
         </div>
         {!value && <Button onClick={onAddClient}>+ Añadir cliente</Button>}
       </div>
+      </div>
+      
+      {editingClient && (
+        <EditClientModal 
+          client={editingClient}
+          onClose={() => setEditingClient(null)}
+          onUpdated={handleClientUpdated}
+        />
+      )}
     </div>
   )
 }

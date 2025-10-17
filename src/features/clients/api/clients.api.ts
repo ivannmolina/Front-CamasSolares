@@ -39,8 +39,55 @@ export async function createClient(payload: Omit<Client,'id'|'createdAt'>): Prom
   const { data } = await http.post('/clientes', {
     nombre: payload.nombre,
     apellido: payload.apellido,
+    dni: payload.dni ?? null,
     telefono: payload.telefono ?? null,
     whatsapp_link
   })
+  return data
+}
+
+export async function updateClient(id: number, payload: Partial<Omit<Client,'id'|'createdAt'>>): Promise<Client>{
+  const whatsapp_link = payload.telefono ? waLink(payload.telefono) : null
+
+  if (isInMemory){
+    const index = MEM_CLIENTS.findIndex(c => c.id === id)
+    if (index === -1) throw new Error('Cliente no encontrado')
+    
+    MEM_CLIENTS[index] = { 
+      ...MEM_CLIENTS[index], 
+      ...payload,
+      whatsapp_link: whatsapp_link ?? MEM_CLIENTS[index].whatsapp_link
+    }
+    return MEM_CLIENTS[index]
+  }
+
+  const updateData: {
+    nombre?: string
+    apellido?: string
+    dni?: string | null
+    telefono?: string | null
+    whatsapp_link?: string | null
+  } = {}
+  
+  if (payload.nombre !== undefined) {
+    updateData.nombre = payload.nombre
+  }
+  
+  if (payload.apellido !== undefined) {
+    updateData.apellido = payload.apellido
+  }
+  
+  if (payload.dni !== undefined) {
+    updateData.dni = payload.dni || null
+  }
+  
+  if (payload.telefono !== undefined) {
+    updateData.telefono = payload.telefono || null
+    updateData.whatsapp_link = whatsapp_link
+  }
+
+  console.log('Actualizando cliente con datos:', updateData)
+
+  const { data } = await http.patch(`/clientes/${id}`, updateData)
   return data
 }

@@ -24,18 +24,24 @@ export default function AddMovementModal({onClose, onCreated}:{onClose:()=>void;
 
   async function handleSave(){
     const montoNum = Number(monto)
-    if(!cliente || montoNum <= 0) {
-      console.warn('Validación fallida:', { cliente, monto: montoNum })
-      if(!cliente) alert('Por favor selecciona un cliente')
-      if(montoNum <= 0) alert('El monto debe ser mayor a 0')
+    
+    // Validar según el tipo de movimiento
+    if(tipoMovimiento === 'IN' && !cliente) {
+      alert('Por favor selecciona un cliente')
       return
     }
+    
+    if(montoNum <= 0) {
+      alert('El monto debe ser mayor a 0')
+      return
+    }
+    
     setSaving(true)
     try{
       // Combinar fecha y hora
       const fechaHora = `${fecha}T${hora}:00`
       console.log('Creando movimiento con datos:', {
-        clienteId: cliente.id,
+        clienteId: tipoMovimiento === 'IN' ? cliente?.id : undefined,
         fecha: new Date(fechaHora).toISOString(),
         tipo: tipoMovimiento,
         tipoCama: tipoMovimiento === 'IN' ? tipoCama : undefined,
@@ -45,7 +51,7 @@ export default function AddMovementModal({onClose, onCreated}:{onClose:()=>void;
       })
       
       const created = await createMovement({
-        clienteId: cliente.id,
+        clienteId: tipoMovimiento === 'IN' ? cliente!.id : undefined,
         fecha: new Date(fechaHora).toISOString(),
         tipo: tipoMovimiento,
         tipoCama: tipoMovimiento === 'IN' ? tipoCama : undefined,
@@ -69,7 +75,9 @@ export default function AddMovementModal({onClose, onCreated}:{onClose:()=>void;
     <>
       <Modal title="Añadir movimiento" onClose={onClose}>
         <div className="vstack" style={{gap:14}}>
-          <ClientPicker value={cliente} onChange={setCliente} onAddClient={()=>setOpenAddClient(true)} />
+          {tipoMovimiento === 'IN' && (
+            <ClientPicker value={cliente} onChange={setCliente} onAddClient={()=>setOpenAddClient(true)} />
+          )}
           
           <div>
             <label className="caption">Tipo de movimiento</label>
@@ -130,7 +138,7 @@ export default function AddMovementModal({onClose, onCreated}:{onClose:()=>void;
 
           <div className="hstack" style={{justifyContent:'flex-end', gap:10, marginTop:6}}>
             <Button onClick={onClose}>Cancelar</Button>
-            <Button className="primary" onClick={handleSave} disabled={!cliente || !monto || Number(monto) <= 0 || saving}>
+            <Button className="primary" onClick={handleSave} disabled={(tipoMovimiento === 'IN' && !cliente) || !monto || Number(monto) <= 0 || saving}>
               {saving ? 'Guardando…' : 'Guardar'}
             </Button>
           </div>
