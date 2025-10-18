@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal from '@/ui/Modal'
 import Input from '@/ui/Input'
 import Button from '@/ui/Button'
-import { createClient, searchClients } from '@/features/clients/api/clients.api'
+import { createClient, listClients } from '@/features/clients/api/clients.api'
 import type { Client } from '@/features/clients/types'
 import { waLink, phoneToWaNumber } from '@/lib/format'
 
@@ -12,51 +12,48 @@ export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; o
   const [dni,setDni]=useState('')
   const [telefono,setTelefono]=useState('')
   const [saving, setSaving] = useState(false)
-  const [isDuplicate, setIsDuplicate] = useState(false)
+  const [isDniDuplicate, setIsDniDuplicate] = useState(false)
 
   const link = waLink(telefono)
-  const numberOk = phoneToWaNumber(telefono) !== null // 8–15 dígitos
+  const numberOk = telefono === '' || phoneToWaNumber(telefono) !== null
 
-  // Validar duplicados en tiempo real
+  // Validar DNI duplicado
   useEffect(() => {
-    const checkDuplicate = async () => {
-      if (!nombre.trim() || !apellido.trim()) {
-        setIsDuplicate(false)
-        return
-      }
+    const checkDniDuplicate = async () => {
+      setIsDniDuplicate(false)
+
+      if (!dni.trim()) return
 
       try {
-        const existingClients = await searchClients(`${nombre} ${apellido}`)
-        const duplicate = existingClients.find(
-          c => c.nombre.toLowerCase() === nombre.toLowerCase() && 
-               c.apellido.toLowerCase() === apellido.toLowerCase()
-        )
+        const allClients = await listClients()
+        const dniExists = allClients.find(c => c.dni && c.dni === dni.trim())
         
-        if (duplicate) {
-          setIsDuplicate(true)
-        } else {
-          setIsDuplicate(false)
+        if (dniExists) {
+          setIsDniDuplicate(true)
+          console.log('DNI duplicado encontrado:', dniExists)
         }
       } catch (err) {
-        console.error('Error al verificar cliente:', err)
+        console.error('Error al verificar DNI:', err)
       }
     }
 
-    const timeoutId = setTimeout(checkDuplicate, 500) // Debounce
+    const timeoutId = setTimeout(checkDniDuplicate, 500) // Debounce
     return () => clearTimeout(timeoutId)
-  }, [nombre, apellido])
+  }, [dni])
 
   async function handleSave(){
-    if(!nombre || !apellido || !numberOk || isDuplicate) return
+    if(!nombre || !apellido || !numberOk || isDniDuplicate) return
     
     setSaving(true)
     try {
+      console.log('Creando cliente:', { nombre, apellido, dni, telefono })
       const c = await createClient({
-        nombre,
-        apellido,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
         dni: dni.trim() || undefined,
-        telefono
+        telefono: telefono.trim() || undefined
       })
+      console.log('Cliente creado:', c)
       onCreated(c)
       onClose()
     } catch(err) {
@@ -100,14 +97,17 @@ export default function AddClientModal({onClose, onCreated}:{onClose:()=>void; o
               : 'Número inválido (8 a 15 dígitos luego de quitar símbolos)'}
           </div>
         </div>
-        {isDuplicate && (
+
+        {/* Alerta de DNI duplicado (BLOQUEANTE) */}
+        {isDniDuplicate && (
           <div className="bg-rose-900/40 text-rose-300" style={{padding:'12px 14px', borderRadius:'10px', border:'1px solid #9f1239', fontSize:'14px', fontWeight: 500}}>
-            ⚠️ Cliente ya existente
+            ⚠️ Ya existe un cliente con este DNI
           </div>
         )}
+
         <div className="hstack" style={{justifyContent:'flex-end', gap:10, marginTop:6}}>
           <Button onClick={onClose}>Cancelar</Button>
-          <Button className="primary" onClick={handleSave} disabled={!nombre || !apellido || !numberOk || isDuplicate || saving}>
+          <Button className="primary" onClick={handleSave} disabled={!nombre || !apellido || !numberOk || isDniDuplicate || saving}>
             {saving ? 'Guardando…' : 'Guardar cliente'}
           </Button>
         </div>
