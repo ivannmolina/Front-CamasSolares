@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import MovementsTable from '../components/MovementsTable'
 import AddMovementModal from '../components/AddMovementModal'
+import CloseTurnModal from '../components/CloseTurnModal'
 import { listMovementsForDay, deleteMovements } from '../api/movements.api'
 import type { Movement } from '../types'
 import { todayISO } from '@/lib/format'
@@ -11,12 +12,19 @@ type SortDir = 'asc'|'desc'
 export default function MovementsPage(){
   const [items,setItems] = useState<Movement[]>([])
   const [open,setOpen] = useState(false)
+  const [openCloseTurn, setOpenCloseTurn] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('fecha')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const currentDate = todayISO()
 
   useEffect(()=>{
-    listMovementsForDay(todayISO()).then(setItems)
+    loadMovements()
   },[])
+
+  const loadMovements = async () => {
+    const movs = await listMovementsForDay(todayISO())
+    setItems(movs)
+  }
 
   const sorted = useMemo(()=>{
     const arr = [...items]
@@ -78,12 +86,26 @@ export default function MovementsPage(){
         />
       )}
 
+      {openCloseTurn && (
+        <CloseTurnModal
+          onClose={() => setOpenCloseTurn(false)}
+          movements={items}
+          currentDate={currentDate}
+          onSuccess={loadMovements}
+        />
+      )}
+
       <footer className="bottom-nav">
         <nav className="card" style={{padding:12, marginTop:18}}>
           <div className="hstack" style={{gap:24}}>
-            <span>🏠 Inicio</span>
-            <span>🧾 Cierre de turno</span>
-            <span>📜 Historial de cierres</span>
+            <span style={{cursor:'pointer'}}>🏠 Inicio</span>
+            <span 
+              style={{cursor:'pointer'}} 
+              onClick={() => setOpenCloseTurn(true)}
+            >
+              🧾 Cierre de turno
+            </span>
+            <span style={{cursor:'pointer'}}>📜 Historial de cierres</span>
           </div>
         </nav>
       </footer>

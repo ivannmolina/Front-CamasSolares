@@ -13,6 +13,7 @@ export type Movement = {
   monto: number;
   descripcion?: string;          // solo OUT (egreso)
   clienteId?: number;
+  cierreId?: number | null;      // Nuevo: relación con cierre
   cliente?: {
     id: number;
     nombre: string;
